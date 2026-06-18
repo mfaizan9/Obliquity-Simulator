@@ -1,0 +1,148 @@
+/* ==========================================================================
+   Obliquity Simulator -- sim-specific styles only.
+   The shared KL-UNL foundation (kl-unl.css) is never edited; everything here
+   layers on top of it. Sizing is in rem/em so it tracks the browser font
+   setting and reflows cleanly to phone-portrait widths and at 200% zoom.
+   ========================================================================== */
+
+/* The sim's interface font (Verdana), vendored from the decompiled export so the
+   look is self-contained even where Verdana is not installed. */
+@font-face {
+  font-family: 'SimVerdana';
+  src: url('../assets/fonts/Verdana.ttf') format('truetype');
+  font-weight: normal; font-style: normal; font-display: swap;
+}
+
+:root {
+  --sim-panel-gap: 0.6rem;
+  --sim-space: #000000;          /* diagram background (deep space)            */
+  --sim-ecliptic: #66ccff;       /* dashed ecliptic / vertical lines (verbatim) */
+  --sim-axis: #ffffcc;           /* earth axis + equator (verbatim)            */
+}
+
+/* Comfortably large, zoomable body type (>= 1.125rem floor). */
+body { font-size: 1.125rem; line-height: 1.45; }
+
+/* ---- Layout: diagram on the left, controls on the right. Mirrors the original
+   panel grouping & reading order. Collapses to a single stacked column below the
+   foundation's 56rem breakpoint. ------------------------------------------- */
+.sim-layout.app-layout {
+  grid-template-columns: minmax(0, 1.7fr) minmax(15rem, 1fr);
+  gap: var(--sim-panel-gap);
+  padding: 0.5rem;
+  align-items: stretch;
+}
+.sim-area-diagram { grid-column: 1; }
+.sim-area-controls { grid-column: 2; }
+
+.panel { border-radius: 0.25rem; margin-bottom: 0; }
+.panel__heading { font-size: 1.15rem; }
+
+/* ---- Diagram panel: heading on top, canvas centred, help text below. ------ */
+.sim-area-diagram { display: flex; flex-direction: column; }
+.sim-canvas-wrap {
+  padding: 0.5rem 0.75rem 0.75rem;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The positioned stage is exactly the displayed canvas size, so the HTML label
+   overlays can be placed in percentage coordinates and follow any resize. */
+.sim-stage {
+  position: relative;
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+.sim-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;          /* original Flash stage is 600 x 400 */
+  background: var(--sim-space, #000);
+  border: 1px solid var(--border-color, #767676);
+  border-radius: 0.25rem;
+}
+
+/* ---- HTML label overlays (zoomable, screen-reader-aware) ------------------ */
+.sim-overlay {
+  position: absolute;
+  pointer-events: none;
+  font-family: 'SimVerdana', Verdana, Arial, sans-serif;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.sim-degree-label {
+  color: #ffffff;
+  font-size: clamp(0.85rem, 2.6vw, 1.15rem);
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+}
+.sim-ecliptic-label {
+  left: 87%;
+  top: 46.25%;
+  transform: translateY(-50%);
+  color: var(--sim-ecliptic, #66ccff);
+  font-size: clamp(0.7rem, 2.1vw, 0.95rem);
+}
+
+.sim-help { font-size: 0.95rem; }
+
+/* ---- Controls: obliquity slider (native range = full keyboard support). --- */
+.sim-slider-row {
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 0.3rem 0.6rem;
+  margin-bottom: 0.5rem;
+}
+.sim-slider-row .control-row__label { font-weight: 700; }
+.sim-value {
+  justify-self: end;
+  font-size: 1.1rem;
+  min-width: 3.5ch;
+  text-align: right;
+}
+
+.sim-slider {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 2.25rem;
+  accent-color: var(--button-background-color, #005a9c);
+  cursor: pointer;
+}
+.sim-slider:focus-visible {
+  outline-width: 0.125rem; outline-style: solid;
+  outline-color: var(--outline-color, #005fcc); outline-offset: 2px;
+}
+.sim-slider-ticks {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  margin-top: -0.15rem;
+}
+
+.sim-readout {
+  margin: 0.5rem 1rem 0.25rem;
+  font-size: 1.15rem;
+  padding: 0.45rem 0.7rem;
+  background: #f3f4f6;
+  border-radius: 0.25rem;
+}
+
+/* ---- Reflow: single stacked column on narrow / phone-portrait widths.
+   Keep the foundation's own 56rem collapse intact; this just defines the
+   stacked order and full-width panels. ------------------------------------- */
+@media (max-width: 56rem) {
+  .sim-layout.app-layout { grid-template-columns: 1fr; }
+  .sim-area-diagram  { grid-column: 1; }
+  .sim-area-controls { grid-column: 1; }
+}
+
+@media (max-width: 30rem) {
+  body { font-size: 1.0625rem; }
+  .sim-layout.app-layout { padding: 0.35rem; }
+}
