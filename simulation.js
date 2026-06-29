@@ -93,6 +93,7 @@
     earth:   { src: 'assets/earth.png',   w: 2 * GLOBE_R, h: 2 * GLOBE_R, ox: -GLOBE_R, oy: -GLOBE_R },
     shading: { src: 'assets/shading.svg', w: 90,    h: 90,    ox: -45,   oy: -45 },
     axis:    { src: 'assets/axis.svg',    w: 100.7, h: 238.9, ox: -50.3, oy: -132.4 },
+    equator: { src: 'assets/equator.svg', w: 100.7, h: 238.9, ox: -50.3, oy: -132.4 },
     arrow:   { src: 'assets/arrow.svg',   w: 75.05, h: 12.7,  ox: -47.65, oy: 47 }
   };
   (function loadAssets() {
@@ -169,14 +170,33 @@
     // static dashed reference lines
     drawDashedCross(ctx);
 
-    // ---- earth assembly: globe + shading + axis + equator, rotated by the
-    // obliquity (port of earth._rotation = obliquity). ----
+    // ---- earth assembly. The globe, rotation axis and equator tilt with the
+    // obliquity (port of earth._rotation = obliquity); the day/night shading does
+    // NOT -- it is fixed by the Sun's direction (off-screen to the right), so the
+    // dark hemisphere always faces away from the Sun (the left side). The axis is
+    // drawn BEHIND the globe so it emerges from the poles and is occluded by the
+    // sphere in between, preserving the 3-D depiction. ----
+
+    // 1) axis behind the globe (tilted), then the globe occludes its mid-section
     ctx.save();
     ctx.translate(CX, CY);
     ctx.rotate(ob * D2R);                 // _rotation is degrees, clockwise (y-down)
-    drawAsset(ctx, 'earth');
-    drawAsset(ctx, 'shading');
     drawAsset(ctx, 'axis');
+    drawAsset(ctx, 'earth');
+    ctx.restore();
+
+    // 2) night-side shading -- fixed in space (NOT rotated), clipped to the globe
+    ctx.save();
+    ctx.translate(CX, CY);
+    ctx.beginPath(); ctx.arc(0, 0, GLOBE_R, 0, TWO_PI); ctx.clip();
+    drawAsset(ctx, 'shading');
+    ctx.restore();
+
+    // 3) equator + spin arrow in front of the globe (tilted with the obliquity)
+    ctx.save();
+    ctx.translate(CX, CY);
+    ctx.rotate(ob * D2R);
+    drawAsset(ctx, 'equator');
     drawAsset(ctx, 'arrow');
     ctx.restore();
 
@@ -204,8 +224,11 @@
   /* ===================== MathJax read-outs + a11y text ==================== */
   var range    = document.getElementById('ob-range');
   var valueEqn = document.getElementById('ob-value-eqn');     // slider value display
-  var obDesc   = document.getElementById('ob-desc');          // live diagram description
+  var obDesc   = document.getElementById('ob-desc');          // persistent canvas description
+  var liveStatus = document.getElementById('sr-status');      // live announcer (on commit)
 
+  // Audio: every spoken value carries quantity + number + unit, with units as
+  // WORDS ("degrees", never the degree glyph, which screen readers skip/mis-read).
   function description() {
     var v = asFixed(state.obliquity, 1);
     return 'Obliquity ' + v + ' degrees. The earth’s rotation axis is tilted '
@@ -224,10 +247,17 @@
         ['ob-eqn', '\\(\\text{obliquity} = ' + numStr(ob) + '^{\\circ}\\)'],
         ['ob-eqn-sr', 'Obliquity equals ' + asFixed(ob, 1) + ' degrees.']);
     }
-    range.setAttribute('aria-valuetext', asFixed(ob, 1) + ' degrees');
+    // Slider spoken value: quantity name + number + unit-as-word, so each keyboard
+    // step (arrows / Page / Home / End) announces "Obliquity X degrees".
+    range.setAttribute('aria-valuetext', 'Obliquity ' + asFixed(ob, 1) + ' degrees');
+    // Keep the canvas description current (silently; it is not a live region).
+    if (obDesc) obDesc.textContent = description();
   }
 
-  function announce() { if (obDesc) obDesc.textContent = description(); }
+  // Announce the committed state through the live region (units + context).
+  function announce(prefix) {
+    if (liveStatus) liveStatus.textContent = (prefix || '') + description();
+  }
 
   /* ============================ CONTROLS ================================== */
   // Native <input type="range"> -> full keyboard support for free
@@ -240,15 +270,17 @@
   // Announce the committed result on release / change (not on every tick).
   range.addEventListener('change', function () { announce(); });
 
-  // Reset comes from the shared masthead component (the "sim-reset" event).
-  function reset() {
+  // Restore the exact initial state. `announceReset` true -> speak "Simulation
+  // reset." (used for the masthead Reset); false -> silent (used at startup).
+  function reset(announceReset) {
     setObliquity(INIT);
     range.value = INIT;
     requestRender();
     syncReadouts();
-    announce();
+    if (announceReset) announce('Simulation reset. ');
   }
-  document.addEventListener('sim-reset', reset);
+  // Reset comes from the shared masthead component (the "sim-reset" event).
+  document.addEventListener('sim-reset', function () { reset(true); });
 
   /* ============================ STARTUP ================================== */
   // klunlInitEqn is called by the foundation on load; redefine it to set up our
@@ -264,7 +296,7 @@
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(requestRender);
 
   fitCanvas();
-  reset();
+  reset(false);   // initial state, no "reset" announcement on first load
 
   // Typeset once MathJax is ready (it loads asynchronously after this script).
   if (window.MathJax && MathJax.startup && MathJax.startup.promise) {

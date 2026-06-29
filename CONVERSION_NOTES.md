@@ -41,9 +41,13 @@ Reused exported assets (copied to `assets/`, never redrawn):
   export to `images/`); the complete, correct globe **was** available as the
   decompiler's rendered sprite `sprites/DefineSprite_21/1.png`, which is reused
   directly as the globe bitmap.
-- **`axis.svg`** (`shapes/17.svg`) — the rotation axis line + front equator arc.
+- **`axis.svg`** + **`equator.svg`** — the exported `shapes/17.svg` contains two
+  paths (the rotation-axis line and the front equator arc) bundled in one shape.
+  The exact path data is split into two files so they can be composited at
+  different depths (axis behind the globe, equator in front) for a correct 3-D
+  look — see *Deviations* below. No path data was redrawn or altered.
 - **`arrow.svg`** (`shapes/22.svg`) — the equator spin-direction arrow.
-- **`shading.svg`** (`shapes/24.svg`) — the globe limb-shading gradient.
+- **`shading.svg`** (`shapes/24.svg`) — the globe day/night shading gradient.
 - **`fonts/Verdana.ttf`** (`fonts/1_Verdana.ttf`) — the sim's interface font.
 
 Code-drawn (no exported file exists — these are built in AS at runtime):
@@ -94,8 +98,20 @@ unnecessary.)
   the centre, tilt arc and degree label above).
 - **No animation / requestAnimationFrame loop.** The original has none either; the
   diagram is redrawn synchronously on each value change.
-- **The shading gradient rotates with the earth** (as it does in the original
-  clip). It is a baked highlight, not a physical light source.
+- **3-D correctness fixes (at user request).** The original Flash clip rotated the
+  whole assembly — including the shading and the axis — as one unit, which (a) spun
+  the day/night shading with the tilt and (b) painted the axis as a line lying on
+  top of the globe. Both break the intended 3-D depiction, so:
+  - The **day/night shading is now fixed in space**, not rotated with the obliquity.
+    It represents the hemisphere facing away from the Sun (the Sun is off-screen to
+    the right), so the dark side always stays on the **left**. (`shading.svg` is
+    drawn outside the `ctx.rotate(obliquity)` transform, clipped to the globe.)
+  - The **rotation axis is drawn behind the globe**, so it emerges from the north
+    and south poles and is occluded by the sphere in between, instead of overlaying
+    it. (The axis path is drawn before the globe; the front equator arc is drawn
+    after, still in front.)
+  These change only the *compositing order / rotation* of already-exported art;
+  no geometry, colour, physics, or numeric behaviour changed.
 - The degree label and value read-outs are typeset by **MathJax** (so they are
   zoomable and screen-reader friendly) instead of being baked into the canvas.
 

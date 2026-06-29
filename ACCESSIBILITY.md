@@ -78,3 +78,66 @@ Escape + focus restoration), and responsive layout classes.
 - Human screen-reader QA (VoiceOver / NVDA / JAWS) and a manual keyboard pass are
   recommended before release; automated checks and code review do not fully
   substitute for testing with assistive technology.
+
+## AUDIO / SCREEN-READER PASS
+
+This pass made the sim usable by audio alone (NVDA on Windows, VoiceOver on macOS)
+using standard ARIA only. No behaviour, layout, visuals, physics, on-screen text,
+MathJax, responsiveness, or cross-browser handling were changed — narration only.
+All new logic is in `simulation.js`; the foundation files are untouched.
+
+### Values made units-complete (quantity + number + unit, units as words)
+There is exactly one quantity in this sim — the obliquity, in degrees.
+
+- **Obliquity slider** (`#ob-range`, native `<input type="range">`): the accessible
+  name is "obliquity" (`aria-labelledby`), and `aria-valuetext` is set to the full
+  spoken phrase and updated on every change, so each keyboard step
+  (arrows / PageUp/Down / Home/End) speaks the quantity, number and unit:
+  - `aria-valuetext = "Obliquity 23.5 degrees"` (e.g. "Obliquity 66.6 degrees").
+  `aria-valuenow` stays the raw number; the unit is the **word** "degrees", never
+  the `°` glyph (which screen readers skip/mis-read).
+- **Controls read-out** (`#ob-eqn`, MathJax, `aria-hidden`): paired `.sr-only`
+  companion `#ob-eqn-sr` = `"Obliquity equals 23.5 degrees."`
+- **Diagram degree label, slider value, and min/max ticks** are MathJax visuals
+  inside `aria-hidden="true"` containers, so they add no duplicate/garbled speech;
+  their meaning is carried by the slider value, the read-out, and the description.
+
+Negative values do not occur (range is 0–180), so no "minus"/"negative" wording is
+needed; if the range ever changes, the spoken phrase should add it explicitly.
+
+### Unit-word mappings applied
+- `°` (degree glyph) → spoken as the word **"degrees"** in all of `aria-valuetext`,
+  the `.sr-only` read-out, and the live status/description text.
+
+### Live status region (announces what changed)
+- `#sr-status` is `aria-live="polite"` with `role="status"`. It is written **only on
+  commit** (slider `change`) and on **Reset**, never on intermediate drag/`input`
+  ticks, so audio users are not flooded:
+  - on commit: `"Obliquity 66.6 degrees. The earth’s rotation axis is tilted 66.6
+    degrees from the perpendicular to the plane of the ecliptic."`
+  - on masthead Reset: the same sentence prefixed with `"Simulation reset. "`.
+- It is empty on first load (no spurious announcement). Only one region announces,
+  so there are no double-announcements.
+
+### Canvas description approach
+- The `<canvas>` (`role="img"`) is described by `#ob-desc` via `aria-describedby`.
+  `#ob-desc` is a `.sr-only` element that is **kept current from state on every
+  value change** but is **not** a live region — so navigating to the diagram always
+  reads its present state ("Obliquity X degrees. The earth's rotation axis is tilted
+  X degrees from the perpendicular to the plane of the ecliptic."), while the
+  separate `#sr-status` region does the change announcements. Decorative overlays
+  (degree label, "plane of ecliptic" text, ticks) are `aria-hidden="true"`.
+
+### Keyboard
+- The single control is a native range input: reachable in logical order, operable
+  by arrows / PageUp-Down / Home / End, not stuck, with Tab moving away cleanly. Its
+  name + value + unit are spoken on focus and on each step.
+
+### Verification (accessibility tree, no real screen reader in this environment)
+Confirmed in-browser via the accessibility-relevant DOM: `aria-valuetext` updates
+to "Obliquity X degrees" per step; `#ob-desc` updates silently and stays current;
+`#sr-status` stays empty during drag, announces the full units-complete sentence on
+commit, and prefixes "Simulation reset." on Reset; all decorative MathJax is
+`aria-hidden`. **This does not constitute verified screen-reader compatibility** —
+final confirmation requires a human listening test on **NVDA (Windows, Chrome +
+Firefox)** and **VoiceOver (macOS, Chrome + Safari)**.

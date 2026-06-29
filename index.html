@@ -43,8 +43,11 @@
           </div>
         </div>
 
-        <!-- Spoken description of the current diagram state (updated on commit). -->
-        <p id="ob-desc" class="sr-only" aria-live="polite"></p>
+        <!-- Persistent screen-reader description of what the canvas currently shows
+             (the canvas's aria-describedby target). Updated from state so it is
+             always current when navigated to; NOT a live region (the dedicated
+             #sr-status region below does the announcing, avoiding double speech). -->
+        <p id="ob-desc" class="sr-only"></p>
 
         <p class="panel__help sim-help">
           The earth's rotation axis (the cream line through the globe) is tilted away
@@ -85,8 +88,9 @@
         </p>
       </section>
 
-      <!-- Global status announcer (changes announced on commit, not per drag tick). -->
-      <p id="sr-status" class="sr-only" aria-live="polite"></p>
+      <!-- Live status announcer: speaks the new state (with units) on commit /
+           reset, not on every drag tick, so audio users hear what changed. -->
+      <p id="sr-status" class="sr-only" aria-live="polite" role="status"></p>
 
     </main>
   </div>
