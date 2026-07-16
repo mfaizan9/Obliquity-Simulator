@@ -177,11 +177,16 @@
     // drawn BEHIND the globe so it emerges from the poles and is occluded by the
     // sphere in between, preserving the 3-D depiction. ----
 
-    // 1) axis behind the globe (tilted), then the globe occludes its mid-section
+    // 1) BEHIND the globe (tilted): the rotation axis and the FAR half of the
+    // spin circle (equator.svg). The globe then occludes their mid-sections, so
+    // the axis emerges from the poles and the far arc of the spin ring passes
+    // behind the Earth -- that occlusion is what disambiguates the spin direction
+    // (without it the ring reads as an ambiguous flat ellipse on top of the globe).
     ctx.save();
     ctx.translate(CX, CY);
     ctx.rotate(ob * D2R);                 // _rotation is degrees, clockwise (y-down)
     drawAsset(ctx, 'axis');
+    drawAsset(ctx, 'equator');
     drawAsset(ctx, 'earth');
     ctx.restore();
 
@@ -192,11 +197,11 @@
     drawAsset(ctx, 'shading');
     ctx.restore();
 
-    // 3) equator + spin arrow in front of the globe (tilted with the obliquity)
+    // 3) IN FRONT of the globe (tilted): the NEAR half of the spin circle plus its
+    // arrowhead (arrow.svg), so the visible near arc reads as rotation to the east.
     ctx.save();
     ctx.translate(CX, CY);
     ctx.rotate(ob * D2R);
-    drawAsset(ctx, 'equator');
     drawAsset(ctx, 'arrow');
     ctx.restore();
 
@@ -221,9 +226,9 @@
     degreeLabel.style.top  = (ly / STAGE_H * 100) + '%';
   }
 
-  /* ===================== MathJax read-outs + a11y text ==================== */
+  /* ===================== read-outs + a11y text ==================== */
   var range    = document.getElementById('ob-range');
-  var valueEqn = document.getElementById('ob-value-eqn');     // slider value display
+  var field    = document.getElementById('ob-field');         // editable value input
   var obDesc   = document.getElementById('ob-desc');          // persistent canvas description
   var liveStatus = document.getElementById('sr-status');      // live announcer (on commit)
 
@@ -237,16 +242,13 @@
 
   function syncReadouts() {
     var ob = state.obliquity;
-    // Degree label on the diagram: `obliquity + "°"` (verbatim format), typeset.
-    // Slider value label: toFixed(1) (verbatim SliderV3 format), typeset.
-    // Controls read-out: a fuller "obliquity = X°" equation + spoken description.
+    // Diagram degree label: `obliquity + "°"` (verbatim AS format), typeset.
     if (window.klunlShowEquation) {
       klunlShowEquation(['degree-label', '\\(' + numStr(ob) + '^{\\circ}\\)']);
-      klunlShowEquation(['ob-value-eqn', '\\(' + asFixed(ob, 1) + '\\)']);
-      klunlShowEquation(
-        ['ob-eqn', '\\(\\text{obliquity} = ' + numStr(ob) + '^{\\circ}\\)'],
-        ['ob-eqn-sr', 'Obliquity equals ' + asFixed(ob, 1) + ' degrees.']);
     }
+    // Editable value field: show the normalized value (skip while the user is
+    // actively typing in it, so we don't overwrite mid-edit).
+    if (field && document.activeElement !== field) field.value = asFixed(ob, 1);
     // Slider spoken value: quantity name + number + unit-as-word, so each keyboard
     // step (arrows / Page / Home / End) announces "Obliquity X degrees".
     range.setAttribute('aria-valuetext', 'Obliquity ' + asFixed(ob, 1) + ' degrees');
@@ -269,6 +271,51 @@
   });
   // Announce the committed result on release / change (not on every tick).
   range.addEventListener('change', function () { announce(); });
+
+  // Editable field: commit on Enter / blur ("change"). Parse, clamp/round to the
+  // slider's rules, then sync the slider and the rest of the UI. Invalid input
+  // reverts to the current value. Both control paths mutate the same state.
+  function commitField() {
+    var v = parseFloat(field.value);
+    if (isNaN(v)) v = state.obliquity;      // revert non-numeric entries
+    setObliquity(v);                         // clamps to [0,180], rounds to prec
+    range.value = state.obliquity;
+    field.value = asFixed(state.obliquity, 1);   // show the normalized value
+    requestRender();
+    syncReadouts();
+    announce();
+  }
+  field.addEventListener('change', commitField);
+
+  // When the field is focused (via Tab or click), let ArrowUp/Down and the mouse
+  // wheel nudge the value like a spinner. ArrowUp/Down step by the slider's fine
+  // increment (0.1); the wheel steps by 1 per notch for quicker scrubbing. The
+  // step is applied to the value currently shown in the field. Announcements are
+  // debounced so rapid wheel/held-arrow changes don't flood the screen reader.
+  var announceTimer = null;
+  function announceDebounced() {
+    if (announceTimer) clearTimeout(announceTimer);
+    announceTimer = setTimeout(function () { announce(); }, 250);
+  }
+  function fieldNudge(delta) {
+    var base = parseFloat(field.value);
+    if (isNaN(base)) base = state.obliquity;
+    setObliquity(base + delta);                  // clamps to [0,180], rounds to prec
+    range.value = state.obliquity;
+    field.value = asFixed(state.obliquity, 1);   // field is focused -> set explicitly
+    requestRender();
+    syncReadouts();
+    announceDebounced();
+  }
+  field.addEventListener('keydown', function (ev) {
+    if (ev.key === 'ArrowUp')        { ev.preventDefault(); fieldNudge(0.1); }
+    else if (ev.key === 'ArrowDown') { ev.preventDefault(); fieldNudge(-0.1); }
+  });
+  field.addEventListener('wheel', function (ev) {
+    if (document.activeElement !== field) return;   // only when the field is selected
+    ev.preventDefault();                             // don't scroll the page instead
+    fieldNudge(ev.deltaY < 0 ? 1 : -1);
+  }, { passive: false });
 
   // Restore the exact initial state. `announceReset` true -> speak "Simulation
   // reset." (used for the masthead Reset); false -> silent (used at startup).

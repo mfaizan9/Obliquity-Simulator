@@ -82,29 +82,40 @@ body { font-size: 1.125rem; line-height: 1.45; }
   white-space: nowrap;
 }
 .sim-ecliptic-label {
-  left: 87%;
-  top: 46.25%;
-  transform: translateY(-50%);
+  /* Right edge aligned to the line's right end (stage x=521 of 600 -> 13.2% from
+     the right); bottom edge just above the dashed line (stage y=185 of 400).
+     Right-aligned and within the figure so both black margins stay equal. */
+  right: 13.2%;
+  bottom: 54.5%;
+  text-align: right;
+  white-space: nowrap;
   color: var(--sim-ecliptic, #66ccff);
   font-size: clamp(0.7rem, 2.1vw, 0.95rem);
 }
 
-.sim-help { font-size: 0.95rem; }
 
 /* ---- Controls: obliquity slider (native range = full keyboard support). --- */
 .sim-slider-row {
-  grid-template-columns: auto 1fr;
-  align-items: baseline;
-  gap: 0.3rem 0.6rem;
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: 0.15rem;
   margin-bottom: 0.5rem;
 }
-.sim-slider-row .control-row__label { font-weight: 700; }
-.sim-value {
+/* Editable value sits above the slider bar, right-aligned over its track. */
+.sim-field-wrap {
   justify-self: end;
-  font-size: 1.1rem;
-  min-width: 3.5ch;
-  text-align: right;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
 }
+.sim-field {
+  width: 5ch;
+  min-height: 2.25rem;
+  font-size: 1.3rem;
+  text-align: right;
+  padding: 0.15rem 0.4rem;
+}
+.sim-units { font-size: 1.3rem; }
 
 .sim-slider {
   grid-column: 1 / -1;
@@ -121,16 +132,8 @@ body { font-size: 1.125rem; line-height: 1.45; }
   grid-column: 1 / -1;
   display: flex;
   justify-content: space-between;
-  font-size: 0.95rem;
+  font-size: 1rem;
   margin-top: -0.15rem;
-}
-
-.sim-readout {
-  margin: 0.5rem 1rem 0.25rem;
-  font-size: 1.15rem;
-  padding: 0.45rem 0.7rem;
-  background: #f3f4f6;
-  border-radius: 0.25rem;
 }
 
 /* ---- Reflow: single stacked column on narrow / phone-portrait widths.

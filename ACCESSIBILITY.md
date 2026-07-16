@@ -19,16 +19,16 @@ Escape + focus restoration), and responsive layout classes.
   rotation axis is tilted 23.5 degrees from the perpendicular to the plane of the
   ecliptic."*), updated when a change is committed.
 - The decorative HTML label overlays (degree value, "plane of ecliptic") are
-  `aria-hidden="true"`; their meaning is carried by `#ob-desc` and the read-out.
+  `aria-hidden="true"`; their meaning is carried by `#ob-desc`, the slider's
+  `aria-valuetext`, and the live status region.
 
 ## Mathematics (MathJax)
 - All math is typeset by MathJax via the foundation's `kl-unl.js`
   (`klunlShowEquation` / `klunlInitEqn`) using LaTeX, never raster or ASCII:
   - the diagram **degree label** `\(<value>^{\circ}\)` (HTML overlay, not baked
     into the canvas, so it zooms and is reachable);
-  - the slider **value** `\(<value>\)` and the **min/max ticks** `\(0\)` / `\(180\)`;
-  - the **read-out** `\(\text{obliquity} = <value>^{\circ}\)`, paired with a
-    spoken string (`#ob-eqn-sr`).
+  - the **min/max ticks** `\(0^{\circ}\)` / `\(180^{\circ}\)` and the `\(^{\circ}\)`
+    unit shown beside the editable value field.
 - The MathJax contextual menu is left enabled (`enableMenu: true`) and not trapped
   — right-clicking any symbol opens *Show Math As → TeX / MathML*. MathJax is
   vendored locally (`assets/mathjax`, SVG output, `fontCache: 'local'`) — no CDN.
@@ -39,16 +39,25 @@ Escape + focus restoration), and responsive layout classes.
   the 3:1 bar for graphical objects. Panel chrome, controls and text use the
   KL-UNL palette variables (≥ 4.5:1).
 - **No state is conveyed by colour alone**: the tilt is given numerically (degree
-  label + read-out), as the slider value, and in the live description. The
+  label + slider value) and in the live description. The
   "plane of ecliptic" line is explicitly labelled.
 
 ## Keyboard (2.1.1 / 2.1.2 / 2.4.7)
-- The sole control is a native `<input type="range">`: focusable, with a visible
-  `:focus-visible` ring (from the foundation), and fully operable by keyboard —
-  Left/Down decrement, Right/Up increment (step 0.1), PageUp/PageDown for larger
-  steps, Home/End for min/max. `aria-valuetext` announces the formatted value
-  ("23.5 degrees"). Tab moves away cleanly; there are no keyboard traps and no
-  canvas pointer handlers competing for focus (the canvas is display-only).
+- Two controls drive the same value, both keyboard-operable:
+  - a native `<input type="range">`: focusable, visible `:focus-visible` ring, fully
+    operable by keyboard — Left/Down decrement, Right/Up increment (step 0.1),
+    PageUp/PageDown for larger steps, Home/End for min/max; `aria-valuetext`
+    announces "Obliquity X degrees";
+  - an **editable text field** (`#ob-field`, `aria-label="obliquity, degrees"`):
+    type a number and press Enter (or Tab/blur) to commit. When the field is
+    focused it also steps like a spinner — ArrowUp/ArrowDown change it by 0.1 and
+    the mouse wheel by 1 per notch (the wheel only acts while focused, so the page
+    still scrolls otherwise). The value is clamped to [0, 180] and rounded to one
+    decimal; invalid entries revert to the current value. Left/Right keep their
+    normal caret behaviour.
+- Both paths mutate one state object, so field, slider, diagram and announcements
+  stay in sync. Tab moves between them and away cleanly; no keyboard traps, and no
+  canvas pointer handlers compete for focus (the canvas is display-only).
 - The masthead manages its own dialog focus trap / Escape / restoration.
 
 ## Timing & motion (2.2.2 / 2.3.3)
@@ -58,9 +67,10 @@ Escape + focus restoration), and responsive layout classes.
   (the `sim-reset` event); no second Reset button is added.
 
 ## Live region (status)
-- `#ob-desc` (`aria-live="polite"`) announces the committed result on slider
-  `change` (not on every input tick), keeping wording consistent with the visible
-  read-out.
+- `#sr-status` (`aria-live="polite"`, `role="status"`) announces the committed
+  result on slider `change` / Reset (not on every input tick). `#ob-desc` is the
+  canvas's non-live `aria-describedby` description, kept current from state. See the
+  AUDIO / SCREEN-READER PASS section for the full model.
 
 ## Responsive / touch
 - Layout uses the KL-UNL grid and rem/%/clamp sizing; it reflows from desktop →
@@ -96,18 +106,21 @@ There is exactly one quantity in this sim — the obliquity, in degrees.
   - `aria-valuetext = "Obliquity 23.5 degrees"` (e.g. "Obliquity 66.6 degrees").
   `aria-valuenow` stays the raw number; the unit is the **word** "degrees", never
   the `°` glyph (which screen readers skip/mis-read).
-- **Controls read-out** (`#ob-eqn`, MathJax, `aria-hidden`): paired `.sr-only`
-  companion `#ob-eqn-sr` = `"Obliquity equals 23.5 degrees."`
-- **Diagram degree label, slider value, and min/max ticks** are MathJax visuals
-  inside `aria-hidden="true"` containers, so they add no duplicate/garbled speech;
-  their meaning is carried by the slider value, the read-out, and the description.
+- **Editable value field** (`#ob-field`): `aria-label="obliquity, degrees"` carries
+  the quantity + unit, so focus reads "obliquity, degrees, edit text, 23.5". The `°`
+  shown beside it is an `aria-hidden` MathJax symbol.
+- **Diagram degree label and min/max ticks** are MathJax visuals inside
+  `aria-hidden="true"` containers (the `°` symbol is shown but not spoken), so they
+  add no duplicate/garbled speech; their meaning is carried for audio by the field
+  name, the slider's `aria-valuetext`, the live status region, and the canvas
+  description — all of which spell the unit as the word "degrees".
 
 Negative values do not occur (range is 0–180), so no "minus"/"negative" wording is
 needed; if the range ever changes, the spoken phrase should add it explicitly.
 
 ### Unit-word mappings applied
-- `°` (degree glyph) → spoken as the word **"degrees"** in all of `aria-valuetext`,
-  the `.sr-only` read-out, and the live status/description text.
+- `°` (degree glyph) → spoken as the word **"degrees"** in `aria-valuetext` and the
+  live status / canvas-description text (the on-screen `°` symbols are `aria-hidden`).
 
 ### Live status region (announces what changed)
 - `#sr-status` is `aria-live="polite"` with `role="status"`. It is written **only on

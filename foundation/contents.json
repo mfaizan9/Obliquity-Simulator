@@ -1047,7 +1047,7 @@
     "masthead": {
       "help": {
         "title": "Help and Instructions",
-        "content": "<p>This simulator shows how obliquity (tilt) is defined.</p>"
+        "content": "<p>This simulator shows how obliquity (tilt) is defined.</p> <p>The earth's rotation axis (the cream line through the globe) is tilted away from the vertical — the line perpendicular to the <strong>plane of the ecliptic</strong> — by the obliquity angle. The earth's current obliquity is about 23.5°, the value shown when the simulator opens. Use the obliquity slider to change the tilt.</p>"
       },
       "about": {
         "title": "About this Simulator",

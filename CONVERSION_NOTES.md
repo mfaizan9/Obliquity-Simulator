@@ -98,6 +98,12 @@ unnecessary.)
   the centre, tilt arc and degree label above).
 - **No animation / requestAnimationFrame loop.** The original has none either; the
   diagram is redrawn synchronously on each value change.
+- **Editable value field added (at user request).** The original slider's value
+  label was display-only. An accessible numeric text field (`#ob-field`) now lets
+  the user type an obliquity directly (0–180, one decimal), matching the KL-UNL
+  pipeline convention of pairing a field with a slider. Entries are clamped/rounded
+  by the same `setObliquity()` used by the slider, so both paths share one state and
+  stay in sync; the field and slider carry a MathJax `°` unit / tick labels.
 - **3-D correctness fixes (at user request).** The original Flash clip rotated the
   whole assembly — including the shading and the axis — as one unit, which (a) spun
   the day/night shading with the tilt and (b) painted the axis as a line lying on
@@ -108,8 +114,14 @@ unnecessary.)
     drawn outside the `ctx.rotate(obliquity)` transform, clipped to the globe.)
   - The **rotation axis is drawn behind the globe**, so it emerges from the north
     and south poles and is occluded by the sphere in between, instead of overlaying
-    it. (The axis path is drawn before the globe; the front equator arc is drawn
-    after, still in front.)
+    it. (The axis path is drawn before the globe.)
+  - The **spin-direction ring is depth-sorted around the globe**: its FAR half
+    (`equator.svg`) is drawn *behind* the globe (occluded by the sphere in the
+    middle, peeking out at the sides) and its NEAR half + arrowhead (`arrow.svg`)
+    *in front*. Drawing the whole ring on top made it a flat ellipse that flipped
+    ambiguously between clockwise/counter-clockwise; hiding the far half behind the
+    Earth (as the original did, via a mask) fixes the read as rotation toward the
+    east.
   These change only the *compositing order / rotation* of already-exported art;
   no geometry, colour, physics, or numeric behaviour changed.
 - The degree label and value read-outs are typeset by **MathJax** (so they are
